@@ -1,0 +1,139 @@
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
+#include <QMainWindow>
+#include <QString>
+#include <string>
+using namespace std;
+
+// ========== PRODUCT CLASSES (From Your Console Code) ==========
+class Product {
+public:
+    int id;
+    std::string name;
+    float price;
+    int stockquantity;
+    std::string details;    // Store ALL details here
+      std::string imagePath;
+
+
+    Product() : id(0), name(""), price(0.0), stockquantity(0), details(""),imagePath("") {}
+    Product(int ID, std::string n, float p, int sq, std::string d,  std::string img = "")
+        : id(ID), name(n), price(p), stockquantity(sq), details(d),imagePath(img) {}
+
+    float getPrice() { return price; }
+};
+
+
+
+//--------------------Cart class-------------
+class Cart {
+private:
+    int count;
+    float total;
+public:
+    Product cartItems[50];
+
+    Cart() : count(0), total(0) {}
+
+    void addProduct(Product p) {
+        if (count < 50) {
+            cartItems[count] = p;
+            total += p.getPrice();
+            count++;
+        }
+    }
+
+    int getCount() { return count; }
+    Product getCartItem(int i) {
+        if (i >= 0 && i < count) return cartItems[i];
+        return Product();
+    }
+    float getTotal() { return total; }
+    void clearCart() {
+        count = 0;
+        total = 0;
+    }
+
+};
+
+
+
+
+
+
+//----------------------MAIN WINDOW-----------
+QT_BEGIN_NAMESPACE
+namespace Ui {
+class MainWindow;
+}
+QT_END_NAMESPACE
+
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
+
+private slots:
+
+    void on_fingerprintButton_clicked();
+    void on_newUserButton_clicked();
+
+    void on_existingUserButton_clicked();
+
+    void on_signUpButton_clicked();
+
+    void on_loginButton_clicked();
+
+
+    //Department buttons
+    void on_electronicsButton_clicked();
+
+    void on_clothingButton_clicked();
+
+    void on_stationaryButton_clicked();
+
+    void on_foodButton_clicked();
+
+    // Cart slots
+    void on_addToCartButton_clicked();
+    void on_viewCartButton_clicked();
+    void on_checkoutButton_clicked();
+    void on_backButton_clicked();  // To go back to departments
+
+private:
+    Ui::MainWindow *ui;
+
+    QString currentUsername;
+    QString currentName;
+    QString currentPhone;
+    QString currentEmail;
+    QString currentAddress;
+      QString currentDepartment;
+
+    void applySimpleGreenTheme();  // Simple version
+   void loadProducts(Product* arr, int size);
+    // Product arrays (like your console code)
+    Product electronicsList[6];
+    Product clothingList[4];
+    Product stationaryList[4];
+    Product foodList[8];
+
+    // Cart
+    Cart cart;
+
+
+
+
+    //Helper functions
+
+    void showDepartmentSelection();
+    void showProductSelection(const QString& department);
+
+     // NEW
+
+};
+#endif // MAINWINDOW_H

@@ -1,0 +1,895 @@
+#include "mainwindow.h"       //your ow nheader file
+#include "./ui_mainwindow.h"  //auto made for UI layout
+#include<QMessageBox>            //for pop up messages
+#include <QFile>       //for file handling
+#include <QTextStream>  //easy text file operations
+#include <QDebug>        //For printing debug messages to console
+#include <QDateTime>           //For timstap in recipts
+#include  <QTableWidgetItem>   //For cell inthe product table
+#include <QPainter>                //For the custom drawing background
+#include <QInputDialog>  // This is for the fingerprint input line
+#include <QPainterPath>//For drawing  complex shapes in theme
+#include <QApplication>  //thisis for the sound application
+
+MainWindow::MainWindow(QWidget *parent)    //Constructor where everything starrts
+    : QMainWindow(parent)              //calls Qt base window constructor
+    , ui(new Ui::MainWindow)    //create UI objects on the heap
+{      ui->setupUi(this);           //creates all buttons labels,tabels from the .ui fiel
+
+
+
+
+    //connect the cart buttons
+       this->resize(1200, 800);      //Set the window size, for the content to fit
+     applySimpleGreenTheme();
+
+
+
+
+
+
+       // After applying theme, make sure group boxes can expand, fill the wigdet with possible space
+       ui->productGroupBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+
+       connect(ui->fingerprintButton, &QPushButton::clicked,
+               this, &MainWindow::on_fingerprintButton_clicked);
+
+
+
+    connect(ui->addToCartButton, &QPushButton::clicked,  //&QPushButton::clicked (button was clicked)
+            this, &MainWindow::on_addToCartButton_clicked); //&MainWindow::on_addToCartButton_clicked (function to call)
+    connect(ui->viewCartButton, &QPushButton::clicked,
+            this, &MainWindow::on_viewCartButton_clicked);
+    connect(ui->checkoutButton, &QPushButton::clicked,
+            this, &MainWindow::on_checkoutButton_clicked);
+    connect(ui->backButton, &QPushButton::clicked,
+            this, &MainWindow::on_backButton_clicked);
+
+    //inintialising variables to empty cus no user at the beginning
+    currentUsername = "";
+    currentName = "";
+    currentPhone = "";
+    currentEmail = "";
+    currentAddress = "";
+    currentDepartment = "";
+
+
+    // Setup table headers
+    ui->productTable->setColumnCount(5);
+    QStringList headers = {"ID", "Name", "Price", "Stock", "Details"};
+    ui->productTable->setHorizontalHeaderLabels(headers);
+
+           // array of the data
+    electronicsList[0] = Product(2, "laptop", 10000, 9, "Model: windows 11");
+    electronicsList[1] = Product(1, "mobile", 1089, 8, "Model: 14 pro max");
+    electronicsList[2] = Product(3, "mobile case", 65, 5, "Model: 15 pro");
+    electronicsList[3] = Product(4, "power bank", 889, 8, "Model: samsung");
+    electronicsList[4] = Product(5, "charger", 189, 2, "Model: wireless charger");
+    electronicsList[5] = Product(6, "batteries", 1089, 8, "Model: 80 volts");
+
+    clothingList[0] = Product(7, "Shirt", 2500, 10, "Size: small, Color: blue");
+    clothingList[1] = Product(8, "Trousers", 1500, 12, "Size: small, Color: black");
+    clothingList[2] = Product(9, "Undergarments", 1240, 22, "Size: , Color: ");
+    clothingList[3] = Product(10, "Shoes", 2500, 25, "Size: 6 size, Color: black");
+
+    stationaryList[0] = Product(11, "Notebooks", 250, 33, "Type: Narrow lines");
+    stationaryList[1] = Product(12, "pencils and markers", 750, 55, "Type: ORO");
+    stationaryList[2] = Product(13, "Files and Plastic covers", 30, 77, "Type: simple");
+    stationaryList[3] = Product(14, "Schoolbags", 1340, 33, "Type: for girls");
+
+    foodList[0] = Product(15, "Apples", 240, 12, "Category: Fruit");
+    foodList[1] = Product(16, "Mangoes", 120, 33, "Category: Fruit");
+    foodList[2] = Product(17, "Tomatoes", 340, 22, "Category: Vegetable");
+    foodList[3] = Product(18, "Onions", 330, 33, "Category: Vegetable");
+    foodList[4] = Product(19, "Yogurt", 125, 12, "Category: Dairy");
+    foodList[5] = Product(20, "Milk and Ice cream", 450, 45, "Category: Dairy");
+    foodList[6] = Product(21, "Chips and biscuits", 222, 45, "Category: Junkfood");
+    foodList[7] = Product(22, "Fizzty drinks", 126, 33, "Category: Junkfood");
+
+
+
+
+
+    //hide everything at the start
+
+    ui->signupgroupBox->hide();
+    ui->logingroupBox->hide();
+     ui->departmentGroupBox->hide();
+    ui->productGroupBox->hide();
+
+
+    ui->fingerprintButton->setIcon(QIcon(":/icons/fingerprint.png"));
+    ui->fingerprintButton->setIconSize(QSize(16, 16));
+
+
+
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;   //destructor to clean it up
+}
+ //---------------------WELCOME USER---------------
+void MainWindow::on_newUserButton_clicked()
+{
+    QMessageBox::information(this,"Sign up", "Sign up button clicked");
+    ui->welcomeLabel->hide();
+    ui->newUserButton->hide();
+    ui->existingUserButton->hide();
+    ui->logingroupBox->hide();
+
+    ui->signupgroupBox->show();
+}
+
+
+void MainWindow::on_existingUserButton_clicked()
+{   //pop up button
+  QMessageBox::information(this, "Login", "Login button clicked!");
+    ui->welcomeLabel->hide();
+    ui->newUserButton->hide();
+    ui->existingUserButton->hide();
+    ui->signupgroupBox->hide();
+
+    ui->logingroupBox->show();
+}
+
+//-------------------SIGN UP-------------
+void MainWindow::on_signUpButton_clicked()
+{
+    //get user input
+    //string in Qt is Qstring
+     QApplication::beep();  // Simple system beep, for sound effectt
+    QString username = ui->usernameLineEdit->text();  //ui->widgetName->text(): Gets text from input fields
+    QString password = ui->passwordLineEdit->text();
+    QString name = ui->nameLineEdit->text();
+    QString phone = ui->phoneLineEdit->text();
+    QString email = ui->emailLineEdit->text();
+    QString address = ui->addressLineEdit->text();
+
+    // Validate
+    if(username.isEmpty() || password.isEmpty()) {
+        QMessageBox::warning(this, "Error", "Username and password are required!");
+        return;
+    }
+
+    /*isEmpty(): Checks if string is empty
+QMessageBox::warning: Shows error popup*/
+
+    // Save to file (like  console version)
+    QString filename = username + ".txt";
+    QFile file(filename);
+
+    /*username + ".txt" - Creates file like john.txt
+
+QIODevice::WriteOnly - Open for writing
+
+QIODevice::Text - Handle newlines properly
+
+QTextStream - Easy text writing (<< operator)*/
+
+    if(file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&file);
+        out << username << "\n";
+        out << password << "\n";     //store in memory
+        out << name << "\n";
+        out << phone << "\n";
+        out << email << "\n";
+        out << address << "\n";
+        file.close();
+
+        QMessageBox::information(this, "Success",
+        QString("Account created for %1!\nFile saved: %2").arg(username).arg(filename));
+
+        // Clear form
+        ui->usernameLineEdit->clear();
+        ui->passwordLineEdit->clear();
+        ui->nameLineEdit->clear();
+        ui->phoneLineEdit->clear();
+        ui->emailLineEdit->clear();
+        ui->addressLineEdit->clear();
+
+        // Auto-login after signup (optional)
+        currentUsername = username;
+        currentName = name;
+        currentPhone = phone;
+        currentEmail = email;
+        currentAddress = address;
+
+         showDepartmentSelection();  // THIS SHOWS THE DEPARTMENTS!
+
+
+    } else {
+        QMessageBox::warning(this, "Error", "Could not save user file!");
+    }
+}
+
+//show department
+
+void MainWindow::showDepartmentSelection()
+{
+    // Hide all current screens
+    ui->signupgroupBox->hide();
+    ui->logingroupBox->hide();
+    ui->welcomeLabel->hide();
+    ui->newUserButton->hide();
+    ui->existingUserButton->hide();
+
+    // Show department selection
+    ui->departmentGroupBox->show();
+}
+
+
+
+void MainWindow::on_loginButton_clicked()
+{
+
+     QApplication::beep();  // Simple system beep and sound
+    QString enterUsername = ui->loginUsernameLineEdit->text();
+    QString enterPassword = ui->loginPasswordLineEdit->text();
+ //check if files are empty
+    if(enterUsername.isEmpty() || enterPassword.isEmpty()) {
+        QMessageBox::warning(this, "Error", "Please enter both username and password.");
+        return;
+    }
+
+    // Check if user exists
+    QString filename = enterUsername + ".txt";
+    QFile file(filename);
+
+    if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, "Error", "User does not exist. Please sign up first.");
+        return;
+    }
+
+    // Read file  from saved data
+    QTextStream in(&file);
+    QString storedUsername = in.readLine();
+    QString storedPassword = in.readLine();
+    QString storedName = in.readLine();
+    QString storedPhone = in.readLine();    //readLine(): Reads one line at a time (matches how we saved)
+    QString storedEmail = in.readLine();
+    QString storedAddress = in.readLine();
+    file.close();
+
+    // Check credentials
+    if(storedUsername == enterUsername && storedPassword == enterPassword) {
+        QMessageBox::information(this, "Success",
+                                 QString("Login successful!\nWelcome back %1").arg(storedName.isEmpty() ? storedUsername : storedName));
+
+        // Store user info
+        currentUsername = storedUsername;
+        currentName = storedName;
+        currentPhone = storedPhone;
+        currentEmail = storedEmail;
+        currentAddress = storedAddress;
+
+        // Clear login fields
+        ui->loginUsernameLineEdit->clear();
+        ui->loginPasswordLineEdit->clear();
+
+        // ========== ADD THIS LINE ==========
+        showDepartmentSelection();  // THIS SHOWS THE DEPARTMENTS!
+        // ===================================
+
+    } else {
+        QMessageBox::warning(this, "Error", "Incorrect username or password.");
+    }
+}
+
+
+void MainWindow::on_electronicsButton_clicked()
+{
+     QApplication::beep();  // Simple system beep
+    qDebug() << "Electronics button clicked";
+    QMessageBox::information(this, "Electronics", "Electronics department selected!");
+    showProductSelection("Electronics");
+}
+
+
+void MainWindow::on_clothingButton_clicked()
+{
+     QApplication::beep();  // Simple system beep
+    qDebug() << "Clothing  button clicked";
+    QMessageBox::information(this, "Clothing", "Clothing department selected!");
+    showProductSelection("Clothing");
+}
+
+
+void MainWindow::on_stationaryButton_clicked()
+{
+     QApplication::beep();  // Simple system beep
+    qDebug() << "Stationary button clicked";
+    QMessageBox::information(this, "Stationary", "Stationary department selected!");
+    showProductSelection("Stationary");
+}
+
+
+void MainWindow::on_foodButton_clicked()
+{
+     QApplication::beep();  // Simple system beep
+    qDebug() << "food button clicked";
+    QMessageBox::information(this, "Food", "Food department selected!");
+    showProductSelection("Food");
+}
+
+// ==================== SHOW PRODUCTS ====================
+// This will show products for selected department
+void MainWindow::showProductSelection(const QString& department)
+{
+    qDebug() << "=== DEBUG: showProductSelection ===";
+    qDebug() << "Department:" << department;
+    qDebug() << "Hiding departmentGroupBox";
+
+
+
+
+
+    currentDepartment = department;  // Store current department
+         //the user is viewing
+    ui->departmentGroupBox->hide();
+     qDebug() << "Showing productGroupBox";
+    ui->productGroupBox->show();
+
+     qDebug() << "productGroupBox visible?" << ui->productGroupBox->isVisible();
+
+    // Load appropriate products
+    if(department == "Electronics") {
+        loadProducts(electronicsList, 6);
+    }
+    else if(department == "Clothing") {
+          qDebug() << "Loading clothing...";
+        loadProducts(clothingList, 4);
+    }
+    else if(department == "Stationary") {
+         qDebug() << "Loading stationary...";
+        loadProducts(stationaryList, 4);
+    }
+    else if(department == "Food") {
+          qDebug() << "Loading food...";
+        loadProducts(foodList, 8);
+    }
+
+
+ qDebug() << "=== DEBUG: showProductSelection finished ===";
+
+
+}
+
+// Load products into table (like your console's show() functions)
+void MainWindow::loadProducts(Product* arr, int size)
+{
+     qDebug() << "=== DEBUG: loadProducts called ===";
+
+    ui->productTable->setRowCount(0); // Clear table
+    ui->productTable->setRowCount(size);  //add empty rows
+
+
+    //loops through  each product
+    for(int i = 0; i < size; i++) {
+        qDebug() << "Adding product" << i << ":" << arr[i].id << QString::fromStdString(arr[i].name);
+
+
+        // ===== CREATE TABLE ITEMS =====
+        //create table cells with product data
+        QTableWidgetItem* idItem = new QTableWidgetItem(QString::number(arr[i].id));
+        QTableWidgetItem* nameItem = new QTableWidgetItem(QString::fromStdString(arr[i].name));
+        QTableWidgetItem* priceItem = new QTableWidgetItem(QString::number(arr[i].price));    // <-- This is priceItem
+        QTableWidgetItem* stockItem = new QTableWidgetItem(QString::number(arr[i].stockquantity));  // <-- This is stockItem
+        QTableWidgetItem* detailsItem = new QTableWidgetItem(QString::fromStdString(arr[i].details));
+             /*
+QString::number() - Convert number to string
+
+QString::fromStdString() - Convert C++ string to Qt string
+
+new QTableWidgetItem() - Create cell on heap (Qt manages memory)
+               */
+        // Add to table (6 columns now for images)
+        ui->productTable->setItem(i, 0, idItem);
+
+        ui->productTable->setItem(i, 1, nameItem);
+        ui->productTable->setItem(i, 2, priceItem);   // <-- Price goes in column 3
+        ui->productTable->setItem(i, 3, stockItem);   // <-- Stock goes in column 4
+        ui->productTable->setItem(i, 4, detailsItem); // <-- Details in column 5
+
+        // ===== APPLY GREEN-THEME STOCK COLORS =====
+        QColor stockTextColor;
+        QColor stockBgColor;
+        QString stockText;
+
+        if (arr[i].stockquantity == 0) {
+            stockTextColor = QColor(0xC6, 0x28, 0x28);     // Red text
+            stockBgColor = QColor(0xFF, 0xEB, 0xEE);       // Light red background
+            stockText = "OUT OF STOCK";
+        }
+        else if (arr[i].stockquantity <= 3) {
+            stockTextColor = QColor(0xEF, 0x6C, 0x00);     // Orange text
+            stockBgColor = QColor(0xFF, 0xF3, 0xE0);       // Light orange background
+            stockText = QString("LOW: %1 left").arg(arr[i].stockquantity);
+        }
+        else if (arr[i].stockquantity <= 10) {
+            stockTextColor = QColor(0xF9, 0xA8, 0x25);     // Yellow text
+            stockBgColor = QColor(0xFF, 0xFD, 0xE7);       // Light yellow background
+            stockText = QString::number(arr[i].stockquantity);
+        }
+        else {
+            stockTextColor = QColor(0x2E, 0x7D, 0x32);     // Green text
+            stockBgColor = QColor(0xE8, 0xF5, 0xE9);       // Light green background
+            stockText = QString::number(arr[i].stockquantity);
+        }
+
+        stockItem->setText(stockText);
+        stockItem->setForeground(stockTextColor);     // Use setForeground instead
+        stockItem->setBackground(stockBgColor);       // Use setBackground instead
+
+        // ===== APPLY PRICE STYLING =====
+        QColor priceColor;
+
+        if (arr[i].price > 5000) {
+            priceColor = QColor(0x1B, 0x5E, 0x20);     // Dark green
+        } else if (arr[i].price > 1000) {
+            priceColor = QColor(0x38, 0x8E, 0x3C);     // Medium green
+        } else {
+            priceColor = QColor(0x66, 0xBB, 0x6A);     // Light green
+        }
+
+        priceItem->setForeground(priceColor);          // Use setForeground instead
+
+        // Make expensive items bold
+        if (arr[i].price > 5000) {
+            QFont boldFont = priceItem->font();
+            boldFont.setBold(true);
+            priceItem->setFont(boldFont);
+        }
+
+        // Color out-of-stock rows
+        QColor bgColor = (arr[i].stockquantity <= 0) ? QColor(255, 200, 200) : Qt::white;
+        idItem->setBackground(bgColor);
+        nameItem->setBackground(bgColor);
+        priceItem->setBackground(bgColor);
+        stockItem->setBackground(bgColor);  // This might override the stockBgColor
+        detailsItem->setBackground(bgColor);
+
+        // Fix: For out-of-stock, keep the red background
+        if (arr[i].stockquantity == 0) {
+            stockItem->setBackground(stockBgColor);
+        }
+
+    }
+    ui->productTable->resizeColumnsToContents();
+    qDebug() << "=== DEBUG: loadProducts finished ===";
+
+    ui->fingerprintButton->setStyleSheet(
+        "QPushButton {"
+        "   background-color: #2196F3;"  // Blue color
+        "   color: white;"
+        "   font: 9pt 'Arial';"
+        "   padding: 6px 12px;"
+        "   border-radius: 4px;"
+        "   border: 1px solid #1976D2;"
+        "}"
+        "QPushButton:hover { background-color: #1976D2; }"
+        );
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+  // ==================== ADD TO CART ====================
+  void MainWindow::on_addToCartButton_clicked()
+  {
+
+       QApplication::beep();  // Simple system beep
+      // Get selected row
+      int row = ui->productTable->currentRow();
+      if (row < 0) {
+          QMessageBox::warning(this, "Error", "Please select a product first!");
+          return;
+      }
+
+      // Get current department's array
+      Product* deptArray = nullptr;
+      int deptSize = 0;
+
+      if (currentDepartment == "Electronics") {
+          deptArray = electronicsList;
+          deptSize = 6;
+      } else if (currentDepartment == "Clothing") {
+          deptArray = clothingList;
+          deptSize = 4;
+      } else if (currentDepartment == "Stationary") {
+          deptArray = stationaryList;
+          deptSize = 4;
+      } else if (currentDepartment == "Food") {
+          deptArray = foodList;
+          deptSize = 8;
+      }
+
+      if (!deptArray || row >= deptSize) {
+          QMessageBox::warning(this, "Error", "Invalid selection!");
+          return;
+      }
+
+      // Check stock
+      if (deptArray[row].stockquantity <= 0) {
+          QMessageBox::warning(this, "Out of Stock", "This product is out of stock!");
+          return;
+      }
+
+      // Add to cart
+      cart.addProduct(deptArray[row]);
+
+      // Update stock
+      deptArray[row].stockquantity--;
+
+      // Update table display
+      loadProducts(deptArray, deptSize);
+
+      // Show confirmation
+      QMessageBox::information(this, "Cart Updated",
+                               QString("Added to cart:\n%1 - %2\nPrice: Rs.%3\nStock remaining: %4")
+                                   .arg(deptArray[row].id)
+                                   .arg(QString::fromStdString(deptArray[row].name))
+                                   .arg(deptArray[row].price)
+                                   .arg(deptArray[row].stockquantity));
+  }
+
+  // ==================== VIEW CART ====================
+  void MainWindow::on_viewCartButton_clicked()
+  {
+
+       QApplication::beep();  // Simple system beep
+      if (cart.getCount() == 0) {
+          QMessageBox::information(this, "Cart", "Your cart is empty!");
+          return;
+      }
+
+      QString cartDetails = "══════════ YOUR CART ══════════\n\n";
+      float total = 0;
+
+      for (int i = 0; i < cart.getCount(); i++) {
+          Product p = cart.getCartItem(i);
+          cartDetails += QString("%1. %2 - Rs.%3\n")
+                             .arg(i + 1)
+                             .arg(QString::fromStdString(p.name))
+                             .arg(p.price);
+          total += p.price;
+      }
+
+      cartDetails += "\n═══════════════════════════════\n";
+      cartDetails += QString("Total Items: %1\n").arg(cart.getCount());
+      cartDetails += QString("Total Price: Rs.%1").arg(total);
+
+      QMessageBox::information(this, "Shopping Cart", cartDetails);
+  }
+
+  // ==================== CHECKOUT ====================
+  void MainWindow::on_checkoutButton_clicked()
+  {
+
+       QApplication::beep();  // Simple system beep
+      if (cart.getCount() == 0) {
+          QMessageBox::information(this, "Checkout", "Your cart is empty!");
+          return;
+      }
+
+      // Generate receipt (matches your console receipt)
+      QString receipt = "══════════ SUPER STORE RECEIPT ═══════════\n\n";
+      receipt += "Customer: " + currentName + " (" + currentUsername + ")\n";
+      receipt += "Phone: " + currentPhone + "\n";
+      receipt += "Email: " + currentEmail + "\n";
+      receipt += "Date: " + QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss") + "\n";
+      receipt += "═══════════════════════════════════════════\n\n";
+
+      float total = 0;
+      for (int i = 0; i < cart.getCount(); i++) {
+          Product p = cart.getCartItem(i);
+          receipt += QString("%1. %2 - Rs.%3\n")
+                         .arg(i + 1)
+                         .arg(QString::fromStdString(p.name))
+                         .arg(p.price);
+          total += p.price;
+      }
+
+      receipt += "\n═══════════════════════════════════════════\n";
+      receipt += QString("Total Items: %1\n").arg(cart.getCount());
+      receipt += QString("Subtotal: Rs.%1\n").arg(total);
+
+      // Add tax (5%)
+      float tax = total * 0.05;
+      receipt += QString("Tax (5%%): Rs.%1\n").arg(tax);
+
+      receipt += QString("GRAND TOTAL: Rs.%1\n").arg(total + tax);
+      receipt += "═══════════════════════════════════════════\n";
+      receipt += "Thank you for shopping with us!\n";
+      receipt += "═══════════════════════════════════════════\n";
+
+      QMessageBox::information(this, "Checkout Complete", receipt);
+
+      // Clear cart
+      cart.clearCart();
+
+      // Optionally: Save receipt to file
+      QString receiptFilename = currentUsername + "_receipt_" +
+                                QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") + ".txt";
+      QFile receiptFile(receiptFilename);
+      if (receiptFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+          QTextStream out(&receiptFile);
+          out << receipt;
+          receiptFile.close();
+          QMessageBox::information(this, "Receipt Saved",
+                                   QString("Receipt saved to:\n%1").arg(receiptFilename));
+      }
+  }
+
+  // ==================== BACK TO DEPARTMENTS ====================
+  void MainWindow::on_backButton_clicked()
+  {
+       QApplication::beep();  // Simple system beep sound
+      // Hide product display
+      ui->productGroupBox->hide();
+
+      // Show department selection
+      ui->departmentGroupBox->show();
+  }
+
+//Attempt at colors-------
+  void MainWindow::applySimpleGreenTheme()
+  {
+
+
+      // ========== MARKETPLACE MIX PATTERN ==========
+      // Combines shopping carts, fruit, and shopping bags
+      QPixmap pixmap(80, 80);  // Larger pattern for more details
+      pixmap.fill(QColor(248, 255, 248));  // Light green base
+
+      QPainter painter(&pixmap);
+      painter.setRenderHint(QPainter::Antialiasing);
+
+      // Set different colors for different elements
+      QColor cartColor(76, 175, 80, 60);      // Green for carts
+      QColor fruitColor(255, 152, 0, 70);     // Orange for fruit
+      QColor bagColor(156, 39, 176, 60);      // Purple for bags
+      QColor miscColor(33, 150, 243, 60);     // Blue for other items
+
+      // ===== SHOPPING CARTS (simplified) =====
+      painter.setBrush(cartColor);
+      painter.setPen(Qt::NoPen);
+
+      // Cart 1 (top-left)
+      painter.save();
+      painter.translate(10, 10);
+      painter.drawRect(0, 0, 12, 8);      // Cart body
+      painter.drawRect(4, -3, 4, 3);      // Cart handle
+      painter.restore();
+
+      // Cart 2 (bottom-right)
+      painter.save();
+      painter.translate(55, 55);
+      painter.rotate(15);
+      painter.drawRect(0, 0, 10, 7);
+      painter.drawRect(3, -2, 4, 2);
+      painter.restore();
+
+      // ===== FRUIT CUTOUTS =====
+      painter.setBrush(fruitColor);
+
+      // Apple (top-right)
+      painter.save();
+      painter.translate(60, 15);
+      painter.drawEllipse(0, 0, 8, 8);
+      // Stem
+      painter.setPen(QPen(Qt::darkGreen, 1));
+      painter.drawLine(4, -2, 4, 0);
+      painter.setPen(Qt::NoPen);
+      painter.restore();
+
+      // Orange (center-left)
+      painter.setBrush(QColor(255, 193, 7, 70));
+      painter.drawEllipse(15, 40, 7, 7);
+
+      // Banana (bottom-center)
+      painter.setBrush(QColor(255, 235, 59, 70));
+      painter.save();
+      painter.translate(40, 60);
+      painter.rotate(-20);
+      QPainterPath banana;
+      banana.moveTo(0, 0);
+      banana.cubicTo(2, -3, 6, -2, 8, 0);
+      banana.cubicTo(6, 2, 2, 3, 0, 0);
+      painter.drawPath(banana);
+      painter.restore();
+
+      // ===== SHOPPING BAGS =====
+      painter.setBrush(bagColor);
+
+      // Bag 1 (center)
+      painter.save();
+      painter.translate(40, 30);
+      // Bag body
+      QPainterPath bag;
+      bag.moveTo(0, 0);
+      bag.lineTo(10, 0);
+      bag.lineTo(12, 5);
+      bag.lineTo(10, 10);
+      bag.lineTo(0, 10);
+      bag.lineTo(-2, 5);
+      bag.closeSubpath();
+      painter.drawPath(bag);
+
+      // Handles
+      painter.setPen(QPen(bagColor, 2));
+      painter.drawArc(2, -3, 3, 3, 0, 180 * 16);
+      painter.drawArc(5, -3, 3, 3, 0, 180 * 16);
+      painter.setPen(Qt::NoPen);
+      painter.restore();
+
+      // Bag 2 (top-center, smaller)
+      painter.save();
+      painter.translate(35, 5);
+      painter.scale(0.7, 0.7);
+      painter.drawPath(bag);
+      painter.restore();
+
+      // ===== OTHER STORE ITEMS =====
+      painter.setBrush(miscColor);
+
+      // Price tag (bottom-left)
+      painter.save();
+      painter.translate(5, 60);
+      painter.drawEllipse(0, 0, 6, 6);  // Tag circle
+      painter.drawRect(3, 2, 8, 3);     // Tag rectangle
+      painter.restore();
+
+      // Shopping basket (right-center)
+      painter.save();
+      painter.translate(65, 45);
+      painter.setBrush(QColor(121, 85, 72, 60));  // Brown
+      // Basket weave pattern
+      for (int i = 0; i < 3; i++) {
+          painter.drawRect(i*3, 0, 2, 10);
+          painter.drawRect(0, i*3, 10, 2);
+      }
+      painter.restore();
+
+      // ===== SCATTERED DOTS (like small items) =====
+      painter.setBrush(QColor(129, 199, 132, 40));
+      painter.drawEllipse(25, 15, 3, 3);
+      painter.drawEllipse(70, 35, 3, 3);
+      painter.drawEllipse(15, 65, 3, 3);
+      painter.drawEllipse(50, 75, 3, 3);
+
+      painter.end();
+
+      // Apply the pattern
+      QPalette palette;
+      palette.setBrush(QPalette::Window, QBrush(pixmap));
+      this->setPalette(palette);
+      // ========== END MARKETPLACE PATTERN ==========
+
+
+
+
+
+
+
+
+
+      // Basic green buttons - SMALL fonts
+      QString buttonStyle =
+          "QPushButton {"
+          "   background-color: #4CAF50;"
+          "   color: white;"
+          "   font: 9pt 'Arial';"        // VERY SMALL
+          "   padding: 6px 12px;"        // Minimal padding
+          "   border-radius: 4px;"
+          "   border: 1px solid #388E3C;"
+          "}"
+          "QPushButton:hover { background-color: #388E3C; }";
+
+      // Apply to all buttons
+      for (auto button : this->findChildren<QPushButton*>()) {
+          button->setStyleSheet(buttonStyle);
+      }
+
+      // Labels with small fonts
+      QString labelStyle =
+          "QLabel {"
+          "   color: black;"
+          "   font: 9pt 'Arial';"        // VERY SMALL
+          "   padding: 2px;"
+          "}";
+
+      for (auto label : this->findChildren<QLabel*>()) {
+          label->setStyleSheet(labelStyle);
+      }
+
+      // Text fields
+      QString fieldStyle =
+          "QLineEdit {"
+          "   font: 9pt 'Arial';"
+          "   padding: 4px;"
+          "   border: 1px solid #ccc;"
+          "   border-radius: 3px;"
+          "}";
+
+      for (auto field : this->findChildren<QLineEdit*>()) {
+          field->setStyleSheet(fieldStyle);
+      }
+
+      // Table headers
+      ui->productTable->horizontalHeader()->setStyleSheet(
+          "QHeaderView::section {"
+          "   background-color: #2E7D32;"
+          "   color: white;"
+          "   font: 9pt 'Arial';"
+          "   padding: 6px;"
+          "}"
+          );
+
+      // Set table column widths to fit text
+      ui->productTable->setColumnWidth(0, 50);   // ID
+      ui->productTable->setColumnWidth(1, 150);  // Name
+      ui->productTable->setColumnWidth(2, 80);   // Price
+      ui->productTable->setColumnWidth(3, 80);   // Stock
+      ui->productTable->setColumnWidth(4, 200);  // Details
+
+      // Make rows smaller
+      ui->productTable->verticalHeader()->setDefaultSectionSize(25);
+  }
+
+
+  void MainWindow::on_fingerprintButton_clicked()
+  {
+      // Check if cart is empty
+      if (cart.getCount() == 0) {
+          QMessageBox::warning(this, "Empty Cart",
+                               "Your cart is empty! Add items before payment.");
+          return;
+      }
+
+      // Ask for fingerprint (simulated with a password input)
+      bool ok;
+      QString input = QInputDialog::getText(this,
+                                            "Fingerprint Verification",
+                                            "Cashier: Enter fingerprint code (1018):",
+                                            QLineEdit::Password,  // Hide input
+                                            "", &ok);
+
+      if (ok && !input.isEmpty()) {
+          // Convert to int and verify
+          int fingerprint = input.toInt();
+          int fingerprintStandard = 1018;  // Standard fingerprint code
+
+          if (fingerprint == fingerprintStandard) {
+              // Payment successful - process checkout
+              QString message = "✅ Payment Received!\n"
+                                "Fingerprint verified successfully.\n"
+                                "Thank you for shopping at Super Store!";
+
+              QMessageBox::information(this, "Payment Successful", message);
+
+              // You can automatically proceed to checkout
+              // Uncomment the next line if you want to auto-checkout:
+              // on_checkoutButton_clicked();
+
+          } else {
+              QMessageBox::warning(this, "Payment Failed",
+                                   "❌ Payment not received!\n"
+                                   "Fingerprint verification failed.");
+          }
+      }
+  }
+
+
+
